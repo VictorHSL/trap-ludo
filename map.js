@@ -1,59 +1,13 @@
+import { getPlayerOrder, savePlayerOrder, resetPlayerOrder, getGameData, saveGameData } from './storage.js';
+import { roads, spawnPositions, blockedPos } from './config.js'
+
 let rowIndex = 0;
 
 const dicePos = '7-7';
+let gameData = getGameData();
 
-const pathOrder = [
-  '0-0','0-1','0-2',
-  '1-2','2-2','3-2','4-2','5-3','5-4',
-  '6-9','6-10','6-11','6-12','6-13',
-  '6-14','7-14','8-14',
-  '8-13','8-12','8-11','8-10','8-9','9-4',
-  '9-3','10-2','11-2','12-2','13-2',
-  '14-2','14-1','14-0',
-  '13-0','12-0','11-0','10-0','9-1','9-0',
-  '8-5','8-4','8-3','8-2','8-1',
-  '8-0','7-0','6-0',
-  '6-1','6-2','6-3','6-4','6-5','5-0',
-  '5-1','4-0','3-0','2-0','1-0',
-];
-
-const blockedRows = [6,7,8];
-const blockedCols = [6,7,8];
-
-const blockedPos = [];
-blockedRows.forEach(row => {
-  blockedCols.forEach(col => {
-    blockedPos.push(`${row}-${col}`);
-  });
-});
-
-const roads = {
-  'blue': ['1-1', '2-1', '3-1', '4-1', '5-2'],
-  'yellow': ['7-9', '7-10', '7-11', '7-12', '7-13'],
-  'green': ['9-2', '10-1', '11-1', '12-1', '13-1'],
-  'red': ['7-1', '7-2', '7-3', '7-4', '7-5']
-};
-
-const playerPositions = {
-  'blue': [],
-  'yellow': [],
-  'green': [],
-  'red': []
-};
-
-const spawnPositions = {
-  'blue': '1-2',
-  'yellow': '8-13',
-  'green': '13-0',
-  'red': '6-1'
-};
-
-const playerOrder = {
-  'blue': 0,
-  'yellow': 0,
-  'green': 0,
-  'red': 0
-};
+let playerOrderData = getPlayerOrder();
+let playerOrder = [];
 
 const add3BlocksGroup = ($parent) => {
   const up3BlocksRow = [];
@@ -128,6 +82,10 @@ const rollDice = () => {
   const value = now.substring(now.length - 1);
   const diceValue = Math.min(Math.max(value, 1), 6);
   $('.dice').html($('<span>').text(diceValue));
+
+  document.dispatchEvent(new CustomEvent('dice-rolled', {
+    detail: { player: gameData.currentPlayer, diceValue }
+  }));
 };
 
 const setupDice = () => {
@@ -151,7 +109,90 @@ const renderMap = () => {
   add3BlocksGroup($map);
 };
 
+const getMap = () => ($('#map'));
+
+const shouldSetupPlayerOrder = () => {
+  return Object.keys(playerOrderData).filter(x => playerOrderData[x] == 0)[0];
+};
+
+const runSetupPlayerOrder = () => {
+  return new Promise((resolve) => {
+    const color = shouldSetupPlayerOrder();
+    
+    setCurrentPlayer(color);
+
+    if(!color){
+      resolve();
+      return;
+    }
+
+    document.addEventListener('dice-rolled', async function (e){
+      if(e.detail.player == color){
+        playerOrderData[color] = e.detail.diceValue;
+        savePlayerOrder(playerOrderData);
+        await runSetupPlayerOrder();
+        setTimeout(() => {
+          resolve();
+        }, 100);
+      }
+    });
+
+  });
+}
+
+const setCurrentPlayer = (player) => {
+  const map = getMap();
+
+  if(!player){
+    gameData.currentPlayer = '';
+    map.css('background-color', 'unset');
+  }
+  else {
+    map.css('background-color', player);
+    gameData.currentPlayer = player;
+  }
+};
+
+const setupResetBtn = () => {
+  $('#reset-btn').on('click', function () {
+    resetPlayerOrder();
+    playerOrderData = getPlayerOrder();
+    triggerSetupPlayerOrder();
+  });
+};
+
+const triggerSetupPlayerOrder = () => {
+  if(shouldSetupPlayerOrder()){
+    $('#reset-btn').hide();
+    runSetupPlayerOrder().then(() => {
+      alert('Player order set!');
+      $('#reset-btn').show();
+      startGame();
+    });
+  }
+  else {
+    $('#reset-btn').show();
+    startGame();
+  }
+};
+
+const startGame = () => {
+  playerOrder = Object.keys(playerOrderData).sort((a,b) => playerOrderData[b] - playerOrderData[a]);
+  
+  if(!gameData.currentPlayer){
+    setCurrentPlayer(playerOrder[0]);
+    saveGameData(gameData);
+  }
+  else {
+    setCurrentPlayer(gameData.currentPlayer);
+  }
+};
+
 $(function(){
   renderMap();
   setupDice();
+  setupResetBtn();
+
+  triggerSetupPlayerOrder();
+  
 });
