@@ -3,7 +3,11 @@
 
   height: 50px;
   width: 50px;
-  background-color: white;
+  background-color: #e8dacc;
+
+  display: flex;
+  justify-items: center;
+  align-items: center;
 }
 
 #map {
@@ -45,8 +49,34 @@
   text-align: center;
   justify-content: center;
   user-select: none;
+  font-size: 12px;
+  font-weight: bold;
 }
 
 nav {
   margin: 10px;
+}
+
+.player {
+  width: 20px;
+  height: 20px;
+  border: 3px solid;
+  border-radius: 15px;
+}
+
+.position.blue .player.blue {
+  border-color: white;
+}
+
+.highlighted {
+  background-color: purple;
+  cursor: pointer;
+}
+
+.cant-roll {
+  cursor: not-allowed;
+}
+
+.c-pointer {
+  cursor: pointer;
 }

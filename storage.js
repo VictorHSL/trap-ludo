@@ -19,11 +19,16 @@ const emptyPlayerOrder = {
 };
 
 const emptyGameData = {
-  currentPlayer: ''
+  currentPlayer: '',
+  playerPins: [],
+  canRollDice: true,
+  diceValue: 1,
+  waitingPlayer: true
 };
 
-export const resetPlayerOrder = () => {
+export const reset = () => {
   savePlayerOrder();
+  saveGameData();
 };
 
 export const savePlayerOrder = (playerOrder) => {
@@ -41,5 +46,13 @@ export const saveGameData = (gamedata) => {
 
 export const getGameData = () => {
   const stringOrder = getItem(KEYS.GAME_DATA);
-  return stringOrder ? JSON.parse(stringOrder) : emptyGameData;
+  const data = stringOrder ? JSON.parse(stringOrder) : emptyGameData;
+
+  Object.keys(emptyGameData).forEach(key => {
+    if(data[key] == undefined || data[key] == null){
+      data[key] = emptyGameData[key];
+    }
+  });
+
+  return data;
 };
