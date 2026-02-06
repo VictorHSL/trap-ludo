@@ -23,7 +23,13 @@ const emptyGameData = {
   playerPins: [],
   canRollDice: true,
   diceValue: 1,
-  waitingPlayer: true
+  waitingPlayer: true,
+  availablePins: [
+    { player: 'red', amount: 4 },
+    { player: 'blue', amount: 4 },
+    { player: 'yellow', amount: 4 },
+    { player: 'green', amount: 4 },
+  ]
 };
 
 export const reset = () => {

@@ -55,52 +55,89 @@ const handlePinClick = (pos, el) => {
   }
 };
 
+const drawnPin = ($slot, roadColor, pos) => {
+
+  const playerPinData = gameData.playerPins.find(x => x.pos == pos);
+
+  if(!playerPinData) return; 
+
+  const $playerPin = $('<div>')
+    .addClass('player')
+    .addClass(playerPinData.player)
+    .addClass(`player-${playerPinData.player}`);
+
+  $playerPin.attr('data-player', playerPinData.player);
+
+  $playerPin.css('color', getContrastColor(roadColor ? roadColor : '#e8dacc'));
+
+  $playerPin.on('click', function(){
+    handlePinClick(pos, $playerPin);
+  });
+
+  $slot.on('click', function(){
+    handlePinClick(pos, $playerPin);
+  });
+
+  $slot.append($playerPin);
+};
+
+const handleHomeClick = ($home) => {
+  const player = $home.data('player'); //TODO need to validate this logic
+
+  if(player != gameData.currentPlayer) return;
+  if(!gameData.waitingPlayer) return;
+
+  if(gameData.diceValue != DICE_VALUE_MAP.ALLOW_SPAWN) return;
+
+  spawnPlayerPin();
+  endPlayerTurn();
+};
+
+const drawnHomes = () => {
+  $('.home').each(function(){
+    const player = $(this).data('player');
+    const availablePins = gameData.availablePins.find(x => x.player == player);
+
+    for(let i = 0; i < availablePins.amount; i++){
+      const $homePinHolder = $('<div>').addClass('home-pin');
+
+      const $homePin = $('<div>')
+        .addClass(`player ${player}`);
+
+      $homePinHolder.append($homePin);
+
+      $(this).append($homePinHolder);
+    }
+
+    $(this).on('click', handleHomeClick);
+  });
+};
+
 const generateBlocksRow = (blocksCount) => {
   const $row = $('<div>');
-  $row.addClass('row');
+  $row.addClass('map-row');
 
   for (let j = 0; j < blocksCount; j++){
-    const $col = $('<div>');
+    const $slot = $('<div>');
     const pos = `${rowIndex}-${j}`;
-    $col.addClass(`position ${pos}`);
-    $col.attr('data-pos', pos);
+    $slot.addClass(`position ${pos}`);
+    $slot.attr('data-pos', pos);
 
     const roadColor = getRoadColor(rowIndex, j);
 
     if(pos != DICE_POS){
-      // $col.text(pos);
-      const hasPin = gameData.playerPins.find(x => x.pos == pos);
-      if(hasPin){
-        const playerPin = $('<div>')
-          .addClass('player')
-          .addClass(hasPin.player)
-          .addClass(`player-${hasPin.player}`);
-
-        playerPin.attr('data-player', hasPin.player);
-
-        playerPin.css('color', getContrastColor(roadColor ? roadColor : '#e8dacc'));
-
-        playerPin.on('click', function(){
-          handlePinClick(pos, playerPin);
-        });
-
-        $col.on('click', function(){
-          handlePinClick(pos, playerPin);
-        });
-
-        $col.append(playerPin);
-      }
+      drawnPin($slot, roadColor, pos);
     }
     
     if(!isPositionAllowed(rowIndex, j)){
-      $col.addClass('blocked-pos');
+      $slot.addClass('blocked-pos');
     }
     
     if(roadColor){
-      $col.addClass(roadColor);
+      $slot.addClass(roadColor);
     }
 
-    $row.append($col);
+    $row.append($slot);
   }
 
   rowIndex++;
@@ -124,8 +161,10 @@ const rollDice = () => {
 const setupDice = () => {
   const dice = $('.7-7');
   dice.addClass('dice');
+
+  dice.css('color', getContrastColor(gameData.currentPlayer ? gameData.currentPlayer : '#e8dacc'));
   
-  if(!gameData.waitingPlayer){
+  if(!gameData.waitingPlayer || shouldSetupPlayerOrder()){
     dice.html($('<span>').text('ROLAR DADO'));
   }
   else {
@@ -161,6 +200,7 @@ const renderMap = () => {
 
   setupDice();
   setupResetBtn();
+  drawnHomes();
 
   if(gameData.waitingPlayer){
     getplayerPins().forEach(pos => {
@@ -219,6 +259,7 @@ const setCurrentPlayer = (player) => {
 const setupResetBtn = () => {
   $('#reset-btn').on('click', function () {
     reset();
+    renderMap();
     playerOrderData = getPlayerOrder();
     triggerSetupPlayerOrder();
   });
@@ -261,15 +302,14 @@ const handlePinMoved = (e) => {
   }
 
   selectedPlayerPin.pos = pathOrder[nextPosIndex];
-  setNextPlayerAndRender();
+  setNextPlayer();
 };
 
-const setNextPlayerAndRender = () => {
+const setNextPlayer = () => {
   gameData.waitingPlayer = false;
   setCanRollDice(true);
   setCurrentPlayer(getNextPlayer())
   saveGameData(gameData);
-  renderMap();
 };
 
 const setCanRollDice = (can) => {
@@ -285,6 +325,11 @@ const setCanRollDice = (can) => {
   saveGameData(gameData);
 };
 
+const endPlayerTurn = () => {
+  setNextPlayer();
+  renderMap();
+};
+
 const playerRolledDice = (e) => {
   const { diceValue } = e.detail;
   const playerPins = getplayerPins();
@@ -292,9 +337,16 @@ const playerRolledDice = (e) => {
   gameData.diceValue = diceValue;
   alert(`Voce tirou ${diceValue}`);
 
-  if(diceValue == DICE_VALUE_MAP.ALLOW_SPAWN && !playerPins.length){ //TODO need to give player option to spawn new pin
-    spawnPlayerPin();
-    setNextPlayerAndRender();
+  if(diceValue == DICE_VALUE_MAP.ALLOW_SPAWN){
+    if(!playerPins.length){
+      spawnPlayerPin();
+      endPlayerTurn();
+    }
+    else {
+      setCanRollDice(false);
+      gameData.waitingPlayer = true;
+      renderMap();
+    }
   }
   else if (playerPins.length){
     setCanRollDice(false);
@@ -302,11 +354,23 @@ const playerRolledDice = (e) => {
     renderMap();
   }
   else {
-    setNextPlayerAndRender();
+    endPlayerTurn();
   }  
 };
 
+const getPlayerPin = (player) => {
+  const playerPin = gameData.availablePins.find(x => x.player == player);
+
+  if(playerPin.amount == 0) return 0;
+
+  playerPin.amount--;
+
+  return 1;
+};
+
 const spawnPlayerPin = () => {
+  if(getPlayerPin(gameData.currentPlayer)) return;
+  
   const spawnPosition = spawnPositions[gameData.currentPlayer];
   gameData.playerPins.push({ player: gameData.currentPlayer, pos: spawnPosition });
 }
