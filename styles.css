@@ -1,3 +1,7 @@
+body {
+  font-family: "Courier New", Courier, monospace;
+}
+
 .position {
   border: 1px solid black;
 
@@ -120,4 +124,52 @@ nav {
   border: 4px solid;
   width: 30px;
   height: 30px;
+}
+
+.msg-container {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  z-index: 90;
+  display: none;
+}
+
+.msg-backdrop {
+  background-color: rgba(255, 255, 255, 0.75);
+  height: 100%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.msg {
+  background-color: #e8dacc;
+  width: 50%;
+  height: 50%;
+  border: 2px solid black;
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.msg-message {
+  text-align: center;
+  height: 80%;
+  width: 100%;
+  padding: 10px;
+  font-size: 23px;
+  font-weight: bold;
+}
+
+.msg-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#msg-confirm-btn {
+  min-width: 100px;
 }

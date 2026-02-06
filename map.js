@@ -2,6 +2,7 @@ import { getPlayerOrder, savePlayerOrder, reset, getGameData, saveGameData } fro
 import { roads, spawnPositions, blockedPos, pathOrder } from './config.js'
 import { DICE_POS, DICE_VALUE_MAP, EVENT_NAMES } from './consts.js';
 import { getContrastColor, removeItemFromArray } from './utils.js';
+import { showMessage } from './message.js';
 
 let rowIndex = 0;
 let gameData = getGameData();
@@ -253,6 +254,8 @@ const setCurrentPlayer = (player) => {
     gameData.currentPlayer = player;
   }
 
+  dice.css('color', getContrastColor(gameData.currentPlayer ? gameData.currentPlayer : '#e8dacc'));
+
   saveGameData(gameData);
 };
 
@@ -267,9 +270,10 @@ const setupResetBtn = () => {
 
 const triggerSetupPlayerOrder = () => {
   if(shouldSetupPlayerOrder()){
+    showMessage({ message: 'Novo jogo iniciado! Vamos definir a ordem dos jogadores. Para rolar o dado, basta clicar em "ROLAR DADO" se a cor que aparece eh a sua cor.' });
     $('#reset-btn').hide();
     runSetupPlayerOrder().then(() => {
-      alert('Player order set!');
+      showMessage({ message: 'Player order set!' });
       $('#reset-btn').show();
       startGame();
     });
@@ -409,5 +413,4 @@ const startGame = () => {
 $(function(){
   renderMap();
   triggerSetupPlayerOrder();
-  
 });
